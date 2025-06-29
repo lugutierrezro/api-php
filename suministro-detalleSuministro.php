@@ -26,6 +26,9 @@ switch ($action) {
     case 'listar_detalle':
         listarDetalleSuministro($pdo);
         break;
+    case 'historial_compras': // NUEVA ACCIÓN
+        historialCompras($pdo);
+        break;
     default:
         echo json_encode(['error' => 'Acción no válida']);
         break;
@@ -41,7 +44,6 @@ function registrarSuministro($pdo) {
         return;
     }
 
-    // Validaciones básicas
     if (
         !isset($data['productos']) || !is_array($data['productos']) ||
         !isset($data['cantidades']) || !is_array($data['cantidades']) ||
@@ -69,13 +71,13 @@ function registrarSuministro($pdo) {
             ':p_precios' => implode(',', $data['precios']),
         ]);
 
-        // Opcional: puedes obtener la respuesta del SP
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         echo json_encode(['mensaje' => $result['mensaje'] ?? 'Suministro registrado correctamente']);
     } catch (PDOException $e) {
         echo json_encode(['error' => 'Error al registrar suministro', 'detalle' => $e->getMessage()]);
     }
 }
+
 function listarDetalleSuministro($pdo) {
     $id = $_GET['id'] ?? null;
 
@@ -94,6 +96,7 @@ function listarDetalleSuministro($pdo) {
         echo json_encode(['error' => 'Error al listar detalle', 'detalle' => $e->getMessage()]);
     }
 }
+
 function listarSuministros($pdo) {
     try {
         $stmt = $pdo->prepare("CALL sp_listar_suministros()");
@@ -134,6 +137,19 @@ function eliminarSuministro($pdo) {
         echo json_encode(['mensaje' => 'Suministro anulado correctamente']);
     } catch (PDOException $e) {
         echo json_encode(['error' => 'Error al anular suministro', 'detalle' => $e->getMessage()]);
+    }
+}
+
+// NUEVA FUNCIÓN
+function historialCompras($pdo) {
+    try {
+        $stmt = $pdo->prepare("CALL sp_historial_compras()");
+        $stmt->execute();
+        $historial = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode($historial);
+    } catch (PDOException $e) {
+        echo json_encode(['error' => 'Error al obtener historial de compras', 'detalle' => $e->getMessage()]);
     }
 }
 ?>

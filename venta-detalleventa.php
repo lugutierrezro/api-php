@@ -26,6 +26,9 @@ switch ($action) {
     case 'eliminar_venta':
         eliminarVenta($pdo);
         break;
+    case 'historial_ventas':
+        historialVentas($pdo);
+        break;
     default:
         echo json_encode(['error' => 'Acción no válida']);
         break;
@@ -171,4 +174,16 @@ function eliminarVenta($pdo) {
         echo json_encode(['error' => 'Error al anular venta', 'detalle' => $e->getMessage()]);
     }
 }
-?>
+
+// NUEVA FUNCIÓN: historial_ventas
+function historialVentas($pdo) {
+    try {
+        $stmt = $pdo->prepare("CALL sp_historial_ventas()");
+        $stmt->execute();
+        $historial = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode($historial);
+    } catch (PDOException $e) {
+        echo json_encode(['error' => 'Error al obtener historial de ventas', 'detalle' => $e->getMessage()]);
+    }
+}
