@@ -55,18 +55,27 @@ function listarClientes($pdo) {
 function guardarCliente($pdo) {
     $data = json_decode(file_get_contents('php://input'), true);
 
-    $params = [
-        ':p_nombre' => $data['nombre'],
-        ':p_apellido' => $data['apellido'],
-        ':p_dni' => $data['dni'],
-        ':p_direccion' => $data['direccion'],
-        ':p_telefono' => $data['telefono'],
-        ':p_ruc' => $data['ruc']
-    ];
+    try {
+        $params = [
+            ':p_nombre' => $data['nombre'],
+            ':p_apellido' => $data['apellido'],
+            ':p_dni' => $data['dni'],
+            ':p_direccion' => $data['direccion'],
+            ':p_telefono' => $data['telefono'],
+            ':p_ruc' => $data['ruc']
+        ];
 
-    $stmt = $pdo->prepare("CALL sp_guardar_Cliente(:p_nombre, :p_apellido, :p_dni, :p_direccion, :p_telefono, :p_ruc)");
-    $stmt->execute($params);
-    echo json_encode(['mensaje' => 'Cliente guardado correctamente']);
+        $stmt = $pdo->prepare("CALL sp_guardar_Cliente(:p_nombre, :p_apellido, :p_dni, :p_direccion, :p_telefono, :p_ruc)");
+        $stmt->execute($params);
+
+        echo json_encode(['success' => true, 'mensaje' => 'Cliente guardado correctamente']);
+    } catch (PDOException $e) {
+        http_response_code(500); // Código HTTP de error
+        echo json_encode([
+            'success' => false,
+            'error' => 'Error al guardar cliente: ' . $e->getMessage()
+        ]);
+    }
 }
 
 function editarCliente($pdo) {
@@ -88,11 +97,29 @@ function editarCliente($pdo) {
 }
 
 function eliminarCliente($pdo) {
-    $data = json_decode(file_get_contents('php://input'), true);
-    $codigo = $data['idCliente'] ?? null;
+    header('Content-Type: application/json');
 
-    $stmt = $pdo->prepare("CALL sp_eliminar_cliente(:codigo)");
-    $stmt->execute(['codigo' => $codigo]);
-    echo json_encode(['mensaje' => 'Cliente eliminado correctamente']);
+  
+    $data = json_decode(file_get_contents('php://input'), true);
+
+    $codigo = $data['idCliente'] ?? null;
+    if (!$codigo) {
+        echo json_encode(['mensaje' => 'ID de cliente no proporcionado']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("CALL sp_eliminar_Cliente(:p_idCliente)");
+        $stmt->execute(['p_idCliente' => $codigo]);
+
+        echo json_encode(['mensaje' => 'Cliente eliminado correctamente']);
+    } catch (PDOException $e) {
+        // Capturar errores de base de datos
+        echo json_encode([
+            'mensaje' => 'Error al eliminar el cliente',
+            'error' => $e->getMessage()
+        ]);
+    }
 }
+
 ?>

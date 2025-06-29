@@ -1,20 +1,13 @@
 <?php
-// Conexion.php - usando los datos de Railway
-
-$host = 'nozomi.proxy.rlwy.net';
-$dbname = 'railway';
-$username = 'root';
-$password = 'iAiLhGEhumdUbRsrdVsbIWEGaQTvxVGl';
-$port = '23370';
+$host = "localhost";
+$db = "bdPinotelloRailway";
+$user = "root";
+$pass = "";
 
 try {
-    $pdo = new PDO(
-        "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8", 
-        $username, 
-        $password
-    );
+    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die(json_encode(['error' => "Error de conexión: " . $e->getMessage()]));
+    die("Error de conexión: " . $e->getMessage());
 }
 ?>
