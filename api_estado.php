@@ -9,91 +9,90 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-require 'Conexion.php';
-error_reporting(0);
-ini_set('display_errors', 0);
+require 'Conexion.php'; // aquí se define $pdo
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 $accion = $_GET['accion'] ?? '';
 
 switch ($accion) {
     case 'actualizar_estado_general':
-        actualizarEstadoGeneral($conn);
+        actualizarEstadoGeneral($pdo);
         break;
     case 'cambiar_estado_usuario':
-        cambiarEstadoUsuario($conn);
+        cambiarEstadoUsuario($pdo);
         break;
     case 'listar_deshabilitados':
-        listarDeshabilitados($conn);
+        listarDeshabilitados($pdo);
         break;
     case 'listar_usuarios':
-        listarUsuarios($conn);
+        listarUsuarios($pdo);
         break;
     default:
         echo json_encode(['error' => 'Acción no válida']);
 }
 
-function actualizarEstadoGeneral($conn) {
+function actualizarEstadoGeneral($pdo) {
     $tabla = $_GET['tabla'] ?? '';
     $campoId = $_GET['campo'] ?? '';
     $valorId = $_GET['valor'] ?? '';
     $nuevoEstado = $_GET['estado'] ?? '';
 
     if ($tabla && $campoId && $valorId && $nuevoEstado) {
-        $stmt = $conn->prepare("CALL sp_actualizar_estado_general(?, ?, ?, ?, @msg)");
-        $stmt->bind_param("ssss", $tabla, $campoId, $valorId, $nuevoEstado);
-        $stmt->execute();
-        $stmt->close();
+        try {
+            $stmt = $pdo->prepare("CALL sp_actualizar_estado_general(?, ?, ?, ?, @msg)");
+            $stmt->execute([$tabla, $campoId, $valorId, $nuevoEstado]);
 
-        $res = $conn->query("SELECT @msg AS mensaje");
-        echo json_encode($res->fetch_assoc());
+            $res = $pdo->query("SELECT @msg AS mensaje");
+            $mensaje = $res->fetch(PDO::FETCH_ASSOC);
+            echo json_encode($mensaje);
+        } catch (PDOException $e) {
+            echo json_encode(['error' => $e->getMessage()]);
+        }
     } else {
         echo json_encode(['error' => 'Parámetros incompletos']);
     }
 }
 
-function cambiarEstadoUsuario($conn) {
+function cambiarEstadoUsuario($pdo) {
     $idUsuario = $_GET['idUsuario'] ?? '';
     $nuevoEstado = $_GET['estado'] ?? '';
 
     if ($idUsuario && $nuevoEstado !== '') {
-        $stmt = $conn->prepare("CALL sp_cambiar_estado_usuario(?, ?, @msg)");
-        $stmt->bind_param("ii", $idUsuario, $nuevoEstado);
-        $stmt->execute();
-        $stmt->close();
+        try {
+            $stmt = $pdo->prepare("CALL sp_cambiar_estado_usuario(?, ?, @msg)");
+            $stmt->execute([$idUsuario, $nuevoEstado]);
 
-        $res = $conn->query("SELECT @msg AS mensaje");
-        echo json_encode($res->fetch_assoc());
+            $res = $pdo->query("SELECT @msg AS mensaje");
+            $mensaje = $res->fetch(PDO::FETCH_ASSOC);
+            echo json_encode($mensaje);
+        } catch (PDOException $e) {
+            echo json_encode(['error' => $e->getMessage()]);
+        }
     } else {
         echo json_encode(['error' => 'Parámetros incompletos']);
     }
 }
 
-function listarDeshabilitados($conn) {
-    $resultados = [];
-
-    if ($conn->multi_query("CALL sp_listar_todo_deshabilitado()")) {
-        do {
-            if ($res = $conn->store_result()) {
-                while ($fila = $res->fetch_all(MYSQLI_ASSOC)) {
-                    $resultados[] = $fila;
-                }
-                $res->free();
-            }
-        } while ($conn->next_result());
+function listarDeshabilitados($pdo) {
+    try {
+        $stmt = $pdo->prepare("CALL sp_listar_todo_deshabilitado()");
+        $stmt->execute();
+        $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($resultados);
-    } else {
-        echo json_encode(['error' => 'No se pudo ejecutar el procedimiento']);
+    } catch (PDOException $e) {
+        echo json_encode(['error' => $e->getMessage()]);
     }
 }
 
-function listarUsuarios($conn) {
-    $res = $conn->query("CALL sp_listar_usuarios_con_empleado()");
-    $datos = [];
-
-    while ($fila = $res->fetch_assoc()) {
-        $datos[] = $fila;
+function listarUsuarios($pdo) {
+    try {
+        $stmt = $pdo->prepare("CALL sp_listar_usuarios_con_empleado()");
+        $stmt->execute();
+        $datos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($datos);
+    } catch (PDOException $e) {
+        echo json_encode(['error' => $e->getMessage()]);
     }
-
-    echo json_encode($datos);
 }
 ?>
