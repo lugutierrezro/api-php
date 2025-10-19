@@ -1,10 +1,19 @@
 <?php
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST");
+header("Access-Control-Allow-Methods: POST, GET");
 header("Access-Control-Allow-Headers: Content-Type");
 
-// Conexión a PostgreSQL
+// Si es GET, mostramos un mensaje simple
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    echo json_encode([
+        "status" => "ok",
+        "message" => "API de Sensor Solar activa. Envia datos usando POST."
+    ]);
+    exit();
+}
+
+// ===== CONEXIÓN A POSTGRESQL =====
 $host = "dpg-d38bpinfte5s73buuht0-a.oregon-postgres.render.com";
 $port = "5432";
 $dbname = "solarpanel";
@@ -18,7 +27,7 @@ if (!$conn) {
     exit();
 }
 
-// Leer POST JSON
+// ===== LEER JSON DEL POST =====
 $input = json_decode(file_get_contents('php://input'), true);
 
 if (!$input || !isset($input['voltage']) || !isset($input['current']) || !isset($input['power']) || !isset($input['temperature']) || !isset($input['humidity'])) {
@@ -27,7 +36,7 @@ if (!$input || !isset($input['voltage']) || !isset($input['current']) || !isset(
     exit();
 }
 
-// Preparar e insertar en PostgreSQL
+// ===== INSERTAR DATOS =====
 $query = "INSERT INTO sensor_readings (voltage, current, power, temperature, humidity) VALUES ($1, $2, $3, $4, $5)";
 $result = pg_query_params($conn, $query, [
     $input['voltage'],
